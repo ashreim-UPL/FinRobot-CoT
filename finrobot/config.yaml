@@ -1,0 +1,7 @@
+logging:
+  level: DEBUG
+  log_file: logs/finrobot-debug.log
+
+paths:
+  reports_output_dir: report/
+  data_dir: data/
