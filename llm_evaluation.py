@@ -1,14 +1,19 @@
-from openai import OpenAI
 import os
+import openai 
 
-# Configure your API key (or use environment variable OPENAI_API_KEY)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from openai import OpenAI
 
-client = OpenAI()
+
+
+client = OpenAI(api_key="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") 
+
 
 response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "system", "content": "You are a helpful assistant."}, ...],
+    model="gpt-4-1106-preview",  # "gpt-4.1-mini-2025-04-14",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "What is the summary of the income statement?"}
+    ],
 )
 
 

@@ -31,8 +31,19 @@ def discover_tools():
 
     # From ReportChartUtils
     def wrap_chart_tool(fn):
-        def wrapper(ticker, fyear, output_file):
-            return fn(ticker=ticker, date=fyear, output_file=output_file)
+        sig = inspect.signature(fn)
+
+        def wrapper(ticker, report_date, output_file):
+            kwargs = {}
+            for param in sig.parameters:
+                if param in ["ticker", "ticker_symbol"]:
+                    kwargs[param] = ticker
+                elif param in ["fyear", "date", "filing_date"]:
+                    kwargs[param] = report_date
+                elif param in ["output_file", "save_path"]:
+                    kwargs[param] = output_file
+            return fn(**kwargs)
+
         wrapper.__name__ = fn.__name__
         return wrapper
 
@@ -58,6 +69,8 @@ class DataCoTAgentUS(AgentBase):
         os.makedirs(work_dir, exist_ok=True)
 
         tool_registry = discover_tools()
+
+        report_date = f"{fyear}-12-31" 
 
         outputs = [
             {"name": "Income Statement",      "tool": tool_registry["analyze_income_stmt"],         "output_file": "01_income_statement.txt",      "type": "txt"},
@@ -96,7 +109,7 @@ class DataCoTAgentUS(AgentBase):
             t0 = time.time()
             success = False
             try:
-                result = call_with_rate_limit_handling(lambda: tool_call(ticker, fyear, fpath))
+                result = call_with_rate_limit_handling(lambda: tool_call(ticker, report_date, fpath))
                 elapsed = (time.time() - t0) * 1000
 
                 if output["type"] == 'txt':
