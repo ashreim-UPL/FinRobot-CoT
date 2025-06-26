@@ -199,6 +199,13 @@ def log_evaluation_metric(run_id: str, metric_name: str, score: float, reasoning
         "details": details or {}
     })
 
+def log_hallucination_metric(run_id: str, score: float, reason: str, details: dict = None):
+    _log_event("hallucination_metric", {
+        "run_id": run_id,
+        "score": score,
+        "reason": reason,
+        "details": details or {}
+    })
 
 # === 4. CONTEXT MANAGERS FOR EASY INTEGRATION ===
 # These context managers make it easy to wrap your pipeline and agent

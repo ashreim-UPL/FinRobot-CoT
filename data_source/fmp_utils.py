@@ -360,11 +360,13 @@ class FMPUtils:
 
         for filing in data:
             if filing["fillingDate"].split("-")[0] == fyear:
+                print(f"Found filing for {ticker_symbol} in FY{fyear}: {filing['finalLink']} on {filing['fillingDate']}")
+                input("Press Enter to continue after verifying the SEC report data...3")  # Debug   
                 return {
                     "link": filing["finalLink"],
                     "date": filing["fillingDate"]
                 }
-
+        # If no filing found for the specified year
         return {"error": f"No 10-K filing found for {ticker_symbol} in FY{fyear}."}
 
     @staticmethod

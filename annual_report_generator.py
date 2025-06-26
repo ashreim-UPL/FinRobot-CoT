@@ -24,7 +24,7 @@ from event_logger import (
 )
 
 from functional.utils import register_keys_from_json
-from data_source import FMPUtils
+from data_source.fmp_utils import FMPUtils
 
 os.environ["PYTHONIOENCODING"] = "utf-8"
 project_root = os.path.abspath(".")
@@ -47,7 +47,7 @@ available_models = {
     5: "gpt-4.1-2025-04-14",
     6: "deepseek-ai/DeepSeek-V3"
 }
-model_choice = 6
+model_choice = 2
 default_model = available_models[model_choice]
 
 # CLI model selection
@@ -89,8 +89,10 @@ llm_config = {
 try:
     register_keys_from_json(os.path.join(project_root, "config_api_keys.json"))
     app_logger.info("API keys loaded successfully.")
+    # input("Press Enter to continue after verifying API keys are set up correctly.")
 except Exception as e:
     log_pipeline_error("Failed to register API keys", error=str(e))
+    # input("Please check your API keys in config_api_keys.json and press Enter to exit.")    
     sys.exit(2)
 
 def default_hook(event_type, data):

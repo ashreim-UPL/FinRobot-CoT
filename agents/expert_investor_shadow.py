@@ -1,9 +1,8 @@
-# expert_investor_shadow.py
-
 import time
 from typing import Any
 from .agent_base import AgentBase
 import event_logger
+from llm_evaluation import llm_judge_explanation
 
 class ExpertInvestorShadow(AgentBase):
     """
@@ -16,7 +15,6 @@ class ExpertInvestorShadow(AgentBase):
         if agent_id is None:
             agent_id = f"{agent_name}-{int(time.time()*1000)}"
         t_agent_start = time.time()
-        # Start log for this shadow audit agent
         event_logger.log_agent_start(run_id, agent_id, agent_name, {
             "input_data": input_data,
             "stage": stage
@@ -24,32 +22,42 @@ class ExpertInvestorShadow(AgentBase):
 
         print(f"[{self.name}] Auditing {stage} stage.")
 
-        # === QA Checks Example (customize this logic for real validation) ===
         issues = []
-        # Example: check if expected keys exist in input_data
+        hallucinations = input_data.get("hallucinations", []) if isinstance(input_data, dict) else []
+
         expected_keys = ["created_files", "status"]
         for key in expected_keys:
             if key not in input_data:
-                issues.append({"issue": f"Missing key: {key}", "fix": f"Check data generation in stage: {stage}", "result": "FAIL"})
+                issues.append({
+                    "issue": f"Missing key: {key}",
+                    "fix": f"Check data generation in stage: {stage}",
+                    "result": "FAIL"
+                })
 
+        if hallucinations:
+            summary = llm_judge_explanation(hallucinations, context=f"shadow QA - {stage}")
+            issues.append({
+                "issue": "Hallucinations found in output",
+                "fix": "Review model response logic or tool input handling.",
+                "reasoning": summary,
+                "result": "WARN"
+            })
+
+        for issue in issues:
+            event_logger.log_evaluation_metric(
+                run_id,
+                metric_name="QA Issue",
+                score=0.0,
+                reasoning=issue.get("reasoning", issue["issue"]),
+                details=issue
+            )
+
+        t_agent_end = time.time()
         audit_output = {
             "stage": stage,
             "issues": issues,
             "status": "TERMINATE" if not issues else "FAILED"
         }
-        # Audit log: add QA metric event for transparency
-        for issue in issues:
-            event_logger.log_evaluation_metric(
-                run_id, 
-                metric_name="QA Issue", 
-                score=0.0,
-                reasoning=issue["issue"],
-                details=issue
-            )
-
-        t_agent_end = time.time()
-        total_time = (t_agent_end - t_agent_start) * 1000
-        # Finalize the agent_end log with all output, including issues
-        event_logger.log_agent_end(run_id, agent_id, agent_name, audit_output, total_time)
+        event_logger.log_agent_end(run_id, agent_id, agent_name, audit_output, (t_agent_end - t_agent_start) * 1000)
 
         return audit_output if issues else input_data

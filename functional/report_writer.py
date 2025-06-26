@@ -21,8 +21,12 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
+# In report_writer.py
+def get_analysis_utils():
+    from data_source.report_analysis_utils import ReportAnalysisUtils
+    return ReportAnalysisUtils
+
 from data_source.fmp_utils import FMPUtils
-from .analyzer import ReportAnalysisUtils
 from typing import Annotated
 
 

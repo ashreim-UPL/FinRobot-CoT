@@ -4,6 +4,7 @@ from .agent_base import AgentBase
 from functional.text import TextUtils   # Adjust if needed
 from functional.report_writer import ReportLabUtils   # Adjust if needed
 import event_logger
+from llm_evaluation import llm_judge_explanation  # Import LLM evaluation function
 
 class ThesisCoTAgent(AgentBase):
     SECTION_TO_FILENAME = {
@@ -70,10 +71,11 @@ class ThesisCoTAgent(AgentBase):
             })
             t_tool = time.time()
             result = ReportLabUtils.build_annual_report(
-                section_file_map=filtered_section_map,
-                out_path=out_path,
                 ticker_symbol=ticker,
-                fyear=fyear
+                filing_date=fyear,  # assuming fyear acts as a date label here
+                work_dir=work_dir,
+                asset_map=filtered_section_map,
+                output_pdf_path=out_path
             )
             build_latency = (time.time() - t_tool) * 1000
             event_logger.log_tool_result(run_id, agent_name, "build_annual_report", str(result), True, build_latency)
@@ -91,6 +93,25 @@ class ThesisCoTAgent(AgentBase):
         # Agent end log, LLM metrics (N/A here, but log for structure)
         total_time = (time.time() - t_start) * 1000
         event_logger.log_llm_metrics(run_id, agent_name, "N/A", tokens=0, cost=0.0, latency_ms=total_time)
+
+        # Evaluate hallucinations using LLM if any
+        if hallucinations:
+            explanation = llm_judge_explanation(hallucinations, context=f"Missing sections in thesis agent for {ticker} {fyear}")
+            event_logger.log_evaluation_metric(
+                run_id,
+                metric_name="Thesis Summary Completeness",
+                score=0.0,
+                reasoning=explanation,
+                details={"missing_sections": hallucinations}
+            )
+        else:
+            event_logger.log_evaluation_metric(
+                run_id,
+                metric_name="Thesis Summary Completeness",
+                score=1.0,
+                reasoning="All expected summary sections were included in the final PDF."
+            )
+
         agent_output = {
             "pdf_path": out_path,
             "sections": list(filtered_section_map.keys()),

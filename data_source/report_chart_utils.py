@@ -99,12 +99,12 @@ class ReportChartUtils:
             filing_date = datetime.strptime(filing_date, "%Y-%m-%d")
         else:
             filing_date = filing_date
-
+        print(f"Fetching historical data for {ticker_symbol} from {filing_date - timedelta(days=365)} to {filing_date}")
         start = (filing_date - timedelta(days=365)).strftime("%Y-%m-%d")
         end = filing_date.strftime("%Y-%m-%d")
         target_close = FMPUtils.fetch_historical_close_prices(ticker_symbol, start, end)
         sp500_close = FMPUtils.fetch_historical_close_prices("SPY", start, end)
-
+        input("Press Enter to continue after verifying historical data...")  # Debug pause
         """def fetch_stock_data(ticker):
             start = (filing_date - timedelta(days=365)).strftime("%Y-%m-%d")
             end = filing_date.strftime("%Y-%m-%d")

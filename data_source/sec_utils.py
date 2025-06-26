@@ -9,11 +9,8 @@ from typing import Annotated
 #from finrobot.utils import SavePathType, decorate_all_methods
 #from finrobot.data_source import FMPUtils
 from functional.utils import SavePathType, decorate_all_methods
-from .fmp_utils import FMPUtils
 
-CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 PDF_GENERATOR_API = "https://api.sec-api.io/filing-reader"
-
 
 
 def init_sec_api(func):
@@ -35,6 +32,8 @@ def init_sec_api(func):
 
 @decorate_all_methods(init_sec_api)
 class SECUtils:
+
+    CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 
     def get_10k_metadata(
         ticker: Annotated[str, "ticker symbol"],
@@ -142,66 +141,48 @@ class SECUtils:
             return f"No 2023 10-K filing found for {ticker}"
 
     def get_10k_section(
-        ticker_symbol: Annotated[str, "ticker symbol"],
-        fyear: Annotated[str, "fiscal year of the 10-K report"],
-        section: Annotated[
-            str | int,
-            "Section of the 10-K report to extract, should be in [1, 1A, 1B, 2, 3, 4, 5, 6, 7, 7A, 8, 9, 9A, 9B, 10, 11, 12, 13, 14, 15]",
-        ],
-        report_address: Annotated[
-            str,
-            "URL of the 10-K report, if not specified, will get report url from fmp api",
-        ] = None,
+        ticker_symbol: str,
+        fyear: str,
+        section: str | int,
+        report_address: str = None,
         save_path: SavePathType = None,
+        use_cache: bool = True,
     ) -> str:
-        """
-        Get a specific section of a 10-K report from the SEC API.
-        """
         if isinstance(section, int):
             section = str(section)
-        if section not in [
-            "1A",
-            "1B",
-            "7A",
-            "9A",
-            "9B",
-        ] + [str(i) for i in range(1, 16)]:
-            raise ValueError(
-                "Section must be in [1, 1A, 1B, 2, 3, 4, 5, 6, 7, 7A, 8, 9, 9A, 9B, 10, 11, 12, 13, 14, 15]"
-            )
 
-        # os.makedirs(f"{self.project_dir}/10k", exist_ok=True)
+        valid_sections = [str(i) for i in range(1, 16)] + ["1A", "1B", "7A", "9A", "9B"]
+        if section not in valid_sections:
+            raise ValueError(f"Invalid section: {section}")
 
-        # report_name = f"{self.project_dir}/10k/section_{section}.txt"
+        # Define cache path
+        cache_file = os.path.join(SECUtils.CACHE_DIR, f"{ticker_symbol}_{fyear}_section_{section}.txt")
 
-        # if USE_CACHE and os.path.exists(report_name):
-        #     with open(report_name, "r") as f:
-        #         section_text = f.read()
-        # else:
+        # Use cache if available
+        if use_cache and os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return f.read()
+
+        # Get report address if not provided
         if report_address is None:
-            report_address = FMPUtils.get_sec_report(ticker_symbol, fyear)
-            if isinstance(report_address, dict):
-                # Try to extract URL if nested
-                report_address = report_address.get("link", "")  # or 'url', depending on structure
+            metadata = SECUtils.get_10k_metadata(ticker_symbol, f"{fyear}-01-01", f"{fyear}-12-31")
+            report_address = metadata.get("linkToHtml") or metadata.get("linkToFilingDetails")
+            if not report_address:
+                raise ValueError(f"Could not resolve report address for {ticker_symbol} in {fyear}")
 
-            if isinstance(report_address, str) and report_address.startswith("Link: "):
-                report_address = report_address.lstrip("Link: ").split()[0]
+        print(f"[SECUtils] Fetching Section {section} from SEC for {ticker_symbol} ({fyear})")
+        section_text = extractor_api.get_section(report_address, section, "text")
 
-        cache_path = os.path.join(
-            CACHE_PATH, f"sec_utils/{ticker_symbol}_{fyear}_{section}.txt"
-        )
-        if os.path.exists(cache_path):
-            with open(cache_path, "r") as f:
-                section_text = f.read()
-        else:
-            section_text = extractor_api.get_section(report_address, section, "text")
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, "w") as f:
+        # Save to cache
+        if use_cache:
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, "w", encoding="utf-8") as f:
                 f.write(section_text)
 
+        # Optionally save to other location
         if save_path:
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, "w") as f:
+            with open(save_path, "w", encoding="utf-8") as f:
                 f.write(section_text)
 
         return section_text

@@ -17,7 +17,9 @@ project_root = os.path.abspath(os.path.join(current_file_dir, '..', '..'))
 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-from data_source import SECUtils, FMPUtils, IndianMarketUtils
+from data_source.fmp_utils import FMPUtils
+from data_source.sec_utils import SECUtils
+from data_source.indian_spec_utils import   IndianMarketUtils
 from functional.utils import save_to_file
 import re
 
@@ -86,7 +88,6 @@ class ReportAnalysisUtils:
             respective subheadings with specific discussion and strong data support.
             """
         )
-
         # Retrieve the related section from the 10-K report
         section_text = SECUtils.get_10k_section(ticker_symbol, fyear, 7)
 
