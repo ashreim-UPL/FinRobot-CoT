@@ -5,7 +5,7 @@ from openai import OpenAI
 
 
 
-client = OpenAI(api_key="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") 
+client = OpenAI(api_key="") 
 
 
 response = client.chat.completions.create(
